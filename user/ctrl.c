@@ -143,35 +143,33 @@ void *thread_data(void *arg)
 
     sleep(5);
 
-    while(1) {
-        sleep(2);
-    }
+    CMD_DATA *data = (CMD_DATA *)malloc(sizeof(CMD_DATA));
+    data->fd = 1;
+    memset(data->send_buf, 0, 128);
+    sem_init(&data->sem, 0, 0);
 
-        CMD_DATA *data = (CMD_DATA *)malloc(sizeof(CMD_DATA));
-        data->fd = 1;
-        memset(data->send_buf, 0, 128);
-        sem_init(&data->sem, 0, 0);
-
-        node_insert(node_head_p, data);
+    node_insert(node_head_p, data);
 
     while(1) {
         lora_send(port, 1, GET_PARAM_REQUEST, &dat, 1);
 
         usleep(200 * 1000);
-        res = sem_trywait(&data->sem);
+        res = sem_trywait(&data->sem);     
         if (res == 0) {
             lora_frame = (lora_frame_t *)data->send_buf;
             if (lora_frame->cmd == GET_PARAM_RESPONSE) {
-                //fprintf(stderr, "humi:%d, temp:%d.%d \r\n", 
-                //        lora_frame.dat[0], lora_frame.dat[2], lora_frame.dat[3]); 
-                        
+#if 1                
+                fprintf(stderr, "humi:%d, temp:%d.%d \r\n", 
+                        lora_frame->dat[0], lora_frame->dat[2], lora_frame->dat[3]); 
+#else
                 sprintf(str, "INSERT INTO \"dht11\" VALUES(datetime('now'), %d, %d.%d);", 
                         lora_frame->dat[0], lora_frame->dat[2], lora_frame->dat[3]);
                 sqlite3_exec(db, str, 0, 0, &err);  
+#endif                
             } 
             memset(data->send_buf, 0, 128);
-        }
-        sleep(5 * 60);
+        }    
+        sleep(5 * 2);
     }
 
     sqlite3_close(db); 

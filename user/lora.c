@@ -81,7 +81,8 @@ void *thread_lora(void *arg)
                 uint8_t port = rx_buf[2];
                 uint8_t cmd = rx_buf[4];
                 if ((cmd == SET_RELAY_NOTICE) || 
-                    (cmd == SET_RELAY_RESPONSE)) {
+                    (cmd == SET_RELAY_RESPONSE) || 
+                    (cmd == GET_PARAM_RESPONSE)) {
                     LISTNODE *node = node_head;
                     while(node->data) {
                         CMD_DATA *data = (CMD_DATA *)node->data;

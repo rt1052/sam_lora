@@ -30,6 +30,7 @@ void *thread_client(void *arg)
                 uint8_t cmd = buf[3];
                 uint8_t dat = buf[4];
 
+                log_write("tcp len = %d \r\n", len);
                 res = lora_send(data->fd, id, cmd, &dat, 1);
                 if (res == -1) {
                     // send(data->fd, data->send_buf, len, 0);
@@ -47,6 +48,7 @@ void *thread_client(void *arg)
         /* received sem */
         if (res == 0) {
             len = data->send_buf[1];
+            log_write("lora len = %d \r\n", len);
             send(data->fd, data->send_buf, len, 0);
             memset(data->send_buf, 0, 128);
         }
@@ -81,10 +83,12 @@ void *thread_tcp(void *arg)
 
     while(1) {
         int len = sizeof(struct sockaddr);
-        fd_tcp_cli = accept(fd_tcp_srv, (struct sockaddr *)&client, (socklen_t *)&len);
+        fd_tcp_cli = accept(fd_tcp_srv, (struct sockaddr *)&client,
+                            (socklen_t *)&len);
 
         struct timeval timeout = {0, 200 * 1000};
-        setsockopt(fd_tcp_cli, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(struct timeval));
+        setsockopt(fd_tcp_cli, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout,
+                   sizeof(struct timeval));
 
         CMD_DATA *data = (CMD_DATA *)malloc(sizeof(CMD_DATA));
         data->fd = fd_tcp_cli;

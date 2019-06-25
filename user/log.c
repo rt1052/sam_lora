@@ -4,31 +4,6 @@
 
 LOG_DATA log_file;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void log_init(void)
 {
     /* get system time */

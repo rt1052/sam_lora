@@ -6,7 +6,8 @@
 
 
 typedef struct {
-    int fp;
+    //int fp;
+    FILE *fp;
     char path[100];
 } LOG_DATA;
 

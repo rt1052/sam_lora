@@ -159,7 +159,7 @@ void *thread_data(void *arg)
             lora_frame = (lora_frame_t *)data->send_buf;
             if (lora_frame->cmd == GET_PARAM_RESPONSE) {
 #if 1                
-                fprintf(stderr, "humi:%d, temp:%d.%d \r\n", 
+                log_write("humi:%d, temp:%d.%d \r\n", 
                         lora_frame->dat[0], lora_frame->dat[2], lora_frame->dat[3]); 
 #else
                 sprintf(str, "INSERT INTO \"dht11\" VALUES(datetime('now'), %d, %d.%d);", 

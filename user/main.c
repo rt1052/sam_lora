@@ -15,7 +15,8 @@ int main(int argc, char **argv)
     void *thread_result;
     int res;
 
-    printf("\r\n************** welcome *************** \r\n");
+    log_init();
+    log_write("\r\n************** welcome *************** \r\n");
     while ((ch = getopt(argc, argv, "s:h")) != -1) {
         switch (ch) {
             case 's':
@@ -31,8 +32,6 @@ int main(int argc, char **argv)
                 return -1;
         }
     }
-
-    log_write("reboot");
 
     pthread_mutex_init(&lora_lock, NULL);
     pthread_cond_init(&lora_cond,NULL); 

@@ -19,7 +19,7 @@ void *thread_client(void *arg)
     LISTNODE *node = (LISTNODE *)arg;
     CMD_DATA *data = (CMD_DATA *)node->data;
 
-    fprintf(stderr, "%d connected \r\n", data->fd);
+    log_write("%d connected \r\n", data->fd);
     while(1) {
         int len = recv(data->fd, buf, sizeof(buf), 0);  //MSG_WAITALL
 
@@ -33,13 +33,13 @@ void *thread_client(void *arg)
                 res = lora_send(data->fd, id, cmd, &dat, 1);
                 if (res == -1) {
                     // send(data->fd, data->send_buf, len, 0);
-                    printf("#lora busy \r\n");
+                    log_write("#lora busy \r\n");
                 }
             }          
         } else if (len == -1) {  /* timeout */
             usleep(10000);
         } else {  /* len == 0 client disconnected */
-            fprintf(stderr, "%d disconnected \r\n", data->fd);
+            log_write("%d disconnected \r\n", data->fd);
             break;
         }
 
@@ -99,7 +99,7 @@ void *thread_tcp(void *arg)
         /* create thread */
         res = pthread_create(&client_thread, NULL, thread_client, node_head);
         if (res != 0) {
-            fprintf(stderr, "client thread creation failed");
+            log_write("client thread creation failed \r\n");
             exit(EXIT_FAILURE);
         }
     }

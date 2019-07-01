@@ -169,7 +169,7 @@ void *thread_data(void *arg)
             } 
             memset(data->send_buf, 0, 128);
         }    
-        sleep(5 * 2);
+        sleep(30 * 2);
     }
 
     sqlite3_close(db); 

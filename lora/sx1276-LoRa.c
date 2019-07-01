@@ -398,6 +398,10 @@ uint32_t SX1276LoRaProcess( void )
             }
             // Clear Irq
             SX1276Write( REG_LR_IRQFLAGS, RFLR_IRQFLAGS_RXDONE  );
+            // Debug
+            //RxGain = SX1276LoRaReadRxGain( );
+            //log_write("RxGain = %d \r\n", RxGain);
+
             RFLRState = RFLR_STATE_RX_DONE;
         }
         if (dat & RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL) {
@@ -412,6 +416,7 @@ uint32_t SX1276LoRaProcess( void )
             SX1276Write( REG_LR_IRQFLAGS, RFLR_IRQFLAGS_FHSSCHANGEDCHANNEL );
             // Debug
             RxGain = SX1276LoRaReadRxGain( );
+            //log_write("RxGain = %d \r\n", RxGain);
         }
 
         if( LoRaSettings.RxSingleOn == true ) // Rx single mode

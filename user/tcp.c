@@ -20,6 +20,10 @@ void *thread_client(void *arg)
     CMD_DATA *data = (CMD_DATA *)node->data;
 
     log_write("%d connected \r\n", data->fd);
+
+    //uint8_t dat = 0;
+    //lora_send(data->fd, 1, GET_PARAM_REQUEST, &dat, 1);
+
     while(1) {
         int len = recv(data->fd, buf, sizeof(buf), 0);  //MSG_WAITALL
 
@@ -38,7 +42,7 @@ void *thread_client(void *arg)
                 }
             }          
         } else if (len == -1) {  /* timeout */
-            usleep(10000);
+            usleep(100);
         } else {  /* len == 0 client disconnected */
             log_write("%d disconnected \r\n", data->fd);
             break;

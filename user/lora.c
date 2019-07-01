@@ -65,7 +65,7 @@ void *thread_lora(void *arg)
             // fprintf(stderr, "timeout \r\n");        
             break;
         case RF_RX_DONE:
-            //printf("gain = %d \r\n", SX1276LoRaGetPacketRxGain());
+            //log_write("gain = %d \r\n", SX1276LoRaGetPacketRxGain());
 
             SX1276GetRxPacket(rx_buf, &len);
 #if 0            

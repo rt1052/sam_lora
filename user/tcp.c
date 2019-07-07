@@ -35,10 +35,15 @@ void *thread_client(void *arg)
                 uint8_t dat = buf[4];
 
                 log_write("tcp len = %d \r\n", len);
-                res = lora_send(data->fd, id, cmd, &dat, 1);
-                if (res == -1) {
-                    // send(data->fd, data->send_buf, len, 0);
-                    log_write("#lora busy \r\n");
+                for (uint8_t i = 0; i < 3; i++) {
+                    res = lora_send(data->fd, id, cmd, &dat, 1);
+                    if (res == 0) {
+                        break;
+                    } else {
+                        // send(data->fd, data->send_buf, len, 0);
+                        log_write("#lora busy \r\n");
+                        sleep(1);
+                    }
                 }
             }          
         } else if (len == -1) {  /* timeout */

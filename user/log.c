@@ -29,7 +29,7 @@ int log_write(const char * format, ...) {
     va_start(arg, format);
     vsprintf(string, format, arg);
     printf("%s", string);
-#if 0
+#if 1
     if (log_file.fp != NULL) {
         fprintf(log_file.fp, "[%02d-%02d %02d:%02d:%02d] %s", 
                time_p->tm_mon + 1, time_p->tm_mday,

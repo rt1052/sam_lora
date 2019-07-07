@@ -128,8 +128,6 @@ void *thread_data(void *arg)
     int rc;  
     int res;
 
-    int port = 1;
-
     msg_st msg;
     lora_frame_t *lora_frame;
 
@@ -145,20 +143,23 @@ void *thread_data(void *arg)
 
     CMD_DATA *data = (CMD_DATA *)malloc(sizeof(CMD_DATA));
     data->fd = 1;
+    data->port = 0;
+    strcpy(data->host, "local-ctrl");
+    data->active = true;
     memset(data->send_buf, 0, 128);
     sem_init(&data->sem, 0, 0);
 
     node_insert(node_head_p, data);
 
     while(1) {
-        lora_send(port, 1, GET_PARAM_REQUEST, &dat, 1);
+        lora_send(data->port, 1, GET_PARAM_REQUEST, &dat, 1);
 
         usleep(200 * 1000);
         res = sem_trywait(&data->sem);     
         if (res == 0) {
             lora_frame = (lora_frame_t *)data->send_buf;
             if (lora_frame->cmd == GET_PARAM_RESPONSE) {
-#if 1                
+#if 0                
                 log_write("humi:%d, temp:%d.%d \r\n", 
                         lora_frame->dat[0], lora_frame->dat[2], lora_frame->dat[3]); 
 #else

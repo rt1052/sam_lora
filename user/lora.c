@@ -43,7 +43,7 @@ int lora_send(uint8_t port, uint8_t id, uint8_t cmd, uint8_t *dat, uint8_t cnt)
 
 void *thread_lora(void *arg)
 {
-    uint8_t rx_buf[128];
+    uint8_t rx_buf[1024];
     uint16_t len;
     msg_st msg;
 
@@ -76,13 +76,15 @@ void *thread_lora(void *arg)
             fprintf(stderr, "\r\n");
 #endif
 
-            if (rx_buf[len-1] == check_sum(rx_buf, len-1)) {
+            log_write("len = %d \r\n", len);
+            if ((len < 20) && (rx_buf[len-1] == check_sum(rx_buf, len-1))) {
 
                 uint8_t port = rx_buf[2];
                 uint8_t cmd = rx_buf[4];
                 if ((cmd == SET_RELAY_NOTICE) || 
                     (cmd == SET_RELAY_RESPONSE) || 
-                    (cmd == GET_PARAM_RESPONSE)) {
+                    ((cmd == GET_PARAM_RESPONSE) && 
+                     (port == 0))) {  /* only ctrl task data send to all fd */
                     LISTNODE *node = node_head;
                     while(node->data) {
                         CMD_DATA *data = (CMD_DATA *)node->data;

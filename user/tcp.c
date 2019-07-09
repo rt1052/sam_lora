@@ -63,9 +63,11 @@ void *thread_client(void *arg)
         }
     }
 
+    pthread_mutex_lock(&lora_lock); 
     close(data->fd);
     sem_destroy(&data->sem);
     node_delete(node_head_p, node);
+    pthread_mutex_unlock(&lora_lock); 
 }
 
 void *thread_tcp(void *arg)

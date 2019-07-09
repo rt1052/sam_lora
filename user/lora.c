@@ -78,6 +78,7 @@ void *thread_lora(void *arg)
 
             log_write("len = %d \r\n", len);
             if ((len < 20) && (rx_buf[len-1] == check_sum(rx_buf, len-1))) {
+                pthread_mutex_lock(&lora_lock); 
 
                 uint8_t port = rx_buf[2];
                 uint8_t cmd = rx_buf[4];
@@ -101,6 +102,7 @@ void *thread_lora(void *arg)
                         sem_post(&data->sem);
                     }                    
                 }
+                pthread_mutex_unlock(&lora_lock); 
             }
             break;
         case RF_TX_DONE:

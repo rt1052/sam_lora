@@ -29,7 +29,31 @@ int log_write(const char * format, ...) {
     va_start(arg, format);
     vsprintf(string, format, arg);
     printf("%s", string);
+
 #if 1
+    bool flag = false;
+
+    if (log_file.date != time_p->tm_mday) {
+        log_file.date = time_p->tm_mday;
+
+        if (log_file.fp != NULL) {
+            fclose(log_file.fp);
+        }
+        flag = true;
+    } else {
+        if (log_file.fp == NULL) {
+            flag = true;
+        }  
+    }
+
+    if (flag) {
+        flag = false;
+        sprintf(log_file.path, "/home/ftpuser/log/lora/%4d-%02d-%02d.log",
+                time_p->tm_year + 1900, time_p->tm_mon + 1, time_p->tm_mday);
+
+        log_file.fp = fopen(log_file.path, "ab+");
+    }
+
     if (log_file.fp != NULL) {
         fprintf(log_file.fp, "[%02d-%02d %02d:%02d:%02d] %s", 
                time_p->tm_mon + 1, time_p->tm_mday,
@@ -38,6 +62,7 @@ int log_write(const char * format, ...) {
         fflush(log_file.fp);
     }
 #endif
+
     va_end(arg);
 }
 
@@ -58,7 +83,32 @@ int log_buf(char *buf, uint16_t len) {
     strcat(string, "\r\n");
 
     printf("%s", string);
+
 #if 1
+    bool flag = false;
+
+    if (log_file.date != time_p->tm_mday) {
+        log_file.date = time_p->tm_mday;
+
+        if (log_file.fp != NULL) {
+            fclose(log_file.fp);
+        }
+        flag = true;
+    } else {
+        if (log_file.fp == NULL) {
+            flag = true;
+        }  
+    }
+
+    if (flag) {
+        flag = false;
+        sprintf(log_file.path, "/home/ftpuser/log/lora/%4d-%02d-%02d.log",
+                time_p->tm_year + 1900, time_p->tm_mon + 1, time_p->tm_mday);
+
+        log_file.fp = fopen(log_file.path, "ab+");
+    }
+
+
     if (log_file.fp != NULL) {
         fprintf(log_file.fp, "[%02d-%02d %02d:%02d:%02d] %s", 
                time_p->tm_mon + 1, time_p->tm_mday,
@@ -67,6 +117,7 @@ int log_buf(char *buf, uint16_t len) {
         fflush(log_file.fp);
     }
 #endif
+
 }
 
 #if 0

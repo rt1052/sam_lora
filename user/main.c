@@ -15,7 +15,7 @@ int main(int argc, char **argv)
     void *thread_result;
     int res;
 
-    log_init();
+    //log_init();
     log_write("\r\n************** welcome *************** \r\n");
     while ((ch = getopt(argc, argv, "s:h")) != -1) {
         switch (ch) {

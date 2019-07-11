@@ -68,16 +68,17 @@ void *thread_lora(void *arg)
             //log_write("gain = %d \r\n", SX1276LoRaGetPacketRxGain());
 
             SX1276GetRxPacket(rx_buf, &len);
-#if 0            
-            fprintf(stderr, "recv: \r\n");
-            for(uint8_t i = 0; i < len; i++) {
-                fprintf(stderr, "0x%02x ", rx_buf[i]);
-            }
-            fprintf(stderr, "\r\n");
-#endif
 
             log_write("len = %d \r\n", len);
             if ((len < 20) && (rx_buf[len-1] == check_sum(rx_buf, len-1))) {
+
+#if 1            
+            for(uint8_t i = 0; i < len; i++) {
+                log_write("0x%02x ", rx_buf[i]);
+            }
+            log_write("\r\n");
+#endif
+
                 pthread_mutex_lock(&lora_lock); 
 
                 uint8_t port = rx_buf[2];

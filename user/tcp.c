@@ -19,7 +19,7 @@ void *thread_client(void *arg)
     LISTNODE *node = (LISTNODE *)arg;
     CMD_DATA *data = (CMD_DATA *)node->data;
 
-    log_write("%d connected \r\n", data->fd);
+    log_write("%s connected \r\n", data->host);
 
     //uint8_t dat = 0;
     //lora_send(data->fd, 1, GET_PARAM_REQUEST, &dat, 1);
@@ -49,7 +49,7 @@ void *thread_client(void *arg)
         } else if (len == -1) {  /* timeout */
             usleep(100);
         } else {  /* len == 0 client disconnected */
-            log_write("%d disconnected \r\n", data->fd);
+            log_write("%s disconnected \r\n", data->host);
             break;
         }
 

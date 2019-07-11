@@ -2,16 +2,17 @@
 #include "lora.h"
 #include "tcp.h"
 
-int lora_msg;
+int lora_recv_msg, lora_send_msg;
 sem_t lora_sem;
 
-pthread_mutex_t lora_lock;
+pthread_mutex_t lora_lock, lora_send_lock;
 pthread_cond_t lora_cond;
 
 int main(int argc, char **argv)
 {
     int ch;
-    pthread_t tcp_thread, lora_thread, user_thread, gets_thread, data_thread;
+    pthread_t tcp_thread, lora_thread, lora_recv_thread, lora_send_thread,
+              user_thread, gets_thread, data_thread;
     void *thread_result;
     int res;
 
@@ -34,15 +35,23 @@ int main(int argc, char **argv)
     }
 
     pthread_mutex_init(&lora_lock, NULL);
+    pthread_mutex_init(&lora_send_lock, NULL);
+
     pthread_cond_init(&lora_cond,NULL); 
     sem_init(&lora_sem, 0, 0);
 
     /* create msg queue */
-    lora_msg = msgget((key_t)6523, 0666 | IPC_CREAT);
-    if (lora_msg == -1) {
+    lora_recv_msg = msgget((key_t)5000, 0666 | IPC_CREAT);
+    if (lora_recv_msg == -1) {
         printf("create msg queue error \r\n");
         exit(EXIT_FAILURE);
     }
+
+    lora_send_msg = msgget((key_t)5001, 0666 | IPC_CREAT);
+    if (lora_send_msg == -1) {
+        printf("create msg queue error \r\n");
+        exit(EXIT_FAILURE);
+    }    
 
     /* tcp thread */
     res = pthread_create(&tcp_thread, NULL, thread_tcp, NULL);
@@ -50,12 +59,28 @@ int main(int argc, char **argv)
         printf("tcp thread creation failed");
         exit(EXIT_FAILURE);
     }  
+
     /* lora rx&tx */
     res = pthread_create(&lora_thread, NULL, thread_lora, NULL);
     if (res != 0) {
         printf("lora thread creation failed");
         exit(EXIT_FAILURE);
     }
+
+    /* lora recv */
+    res = pthread_create(&lora_recv_thread, NULL, thread_lora_recv, NULL);
+    if (res != 0) {
+        printf("lora recv thread creation failed");
+        exit(EXIT_FAILURE);
+    }    
+
+    /* lora send */
+    res = pthread_create(&lora_send_thread, NULL, thread_lora_send, NULL);
+    if (res != 0) {
+        printf("lora send thread creation failed");
+        exit(EXIT_FAILURE);
+    }  
+
     /* user input */
     res = pthread_create(&user_thread, NULL, thread_user, NULL);
     if (res != 0) {

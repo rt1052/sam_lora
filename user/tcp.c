@@ -15,14 +15,12 @@ void *thread_client(void *arg)
 {
     char buf[128];
     int res;
+    msg_st msg;
 
     LISTNODE *node = (LISTNODE *)arg;
     CMD_DATA *data = (CMD_DATA *)node->data;
 
     log_write("%s connected \r\n", data->host);
-
-    //uint8_t dat = 0;
-    //lora_send(data->fd, 1, GET_PARAM_REQUEST, &dat, 1);
 
     while(1) {
         int len = recv(data->fd, buf, sizeof(buf), 0);  //MSG_WAITALL
@@ -30,21 +28,32 @@ void *thread_client(void *arg)
         if (len > 0) {
             if (1) { //(buf[len-1] == check_sum(buf, len-1)) {
 
-                uint8_t id = buf[2];
-                uint8_t cmd = buf[3];
-                uint8_t dat = buf[4];
-
                 log_write("tcp len = %d \r\n", len);
-                for (uint8_t i = 0; i < 3; i++) {
-                    res = lora_send(data->fd, id, cmd, &dat, 1);
-                    if (res == 0) {
-                        break;
-                    } else {
-                        // send(data->fd, data->send_buf, len, 0);
-                        log_write("#lora busy \r\n");
-                        sleep(1);
-                    }
-                }
+
+                uint8_t lora_buf[64];
+                uint8_t lora_buf_len = buf[1] + 1;
+
+                lora_buf[0] = buf[0];  // head
+                lora_buf[1] = lora_buf_len;  // len
+                lora_buf[2] = data->fd;
+                lora_buf[3] = buf[2];  // id
+                lora_buf[4] = buf[3];  // cmd
+                lora_buf[5] = buf[4];  // dat
+                lora_buf[6] = check_sum(lora_buf, lora_buf_len);
+
+                pthread_mutex_lock(&lora_send_lock); 
+
+                /* create msg */
+                msg.type = 1;
+                uint8_t *ptr = lora.msg_send_buf + lora.msg_send_cnt;
+                /* add checksum */
+                memcpy(ptr, lora_buf, lora_buf_len+1);
+                msg.pdata = ptr;
+                lora.msg_send_cnt = (++lora.msg_send_cnt) % 10;
+                msgsnd(lora_send_msg, (void *)&msg, sizeof(msg.pdata), 0);
+                // res = lora_send(data->fd, id, cmd, &dat, 1);
+
+                pthread_mutex_unlock(&lora_send_lock); 
             }          
         } else if (len == -1) {  /* timeout */
             usleep(100);

@@ -36,8 +36,9 @@ typedef struct {
 } lora_frame_t;
 
 
-extern int lora_msg;
-extern pthread_mutex_t lora_lock;
+
+extern int lora_recv_msg, lora_send_msg;
+extern pthread_mutex_t lora_lock, lora_send_lock;
 extern pthread_cond_t lora_cond;
 extern sem_t lora_sem;
 

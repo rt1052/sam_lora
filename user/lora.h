@@ -12,16 +12,19 @@
 #define SET_RELAY_NOTICE    0x7
 
 typedef struct {
-	uint8_t buf[100];
-    uint8_t len;
+	uint8_t msg_buf[10][64];
+    uint8_t msg_cnt;
+
+	uint8_t msg_send_buf[10][64];
+    uint8_t msg_send_cnt;    
 } lora_st;
 
-
+extern lora_st lora;
 
 
 void *thread_lora(void *arg);
-
-
+void *thread_lora_recv(void *arg);
+void *thread_lora_send(void *arg);
 
 
 

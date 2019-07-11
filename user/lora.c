@@ -18,6 +18,8 @@
 
 extern int fd;
 
+lora_st lora;
+
 int lora_send(uint8_t port, uint8_t id, uint8_t cmd, uint8_t *dat, uint8_t cnt)
 {
     uint8_t buf[64];
@@ -41,6 +43,78 @@ int lora_send(uint8_t port, uint8_t id, uint8_t cmd, uint8_t *dat, uint8_t cnt)
     }
 }
 
+void *thread_lora_send(void *arg)
+{
+    msg_st msg;
+
+    while(1) {
+        msg.pdata = NULL;
+        int res = msgrcv(lora_send_msg, (void *)&msg,
+                         sizeof(msg.pdata), 0, IPC_NOWAIT);
+
+        if (msg.pdata != NULL) {
+            uint8_t *buf = msg.pdata;
+
+            log_buf(buf, buf[1]+1);
+
+            /* wait lora idle */
+            while(SX1276GetRFState() != 0x2) {
+                usleep(1000);
+            }
+            /* send lora data */
+            SX1276SetTxPacket(buf, buf[1]+1);  
+        }
+
+        usleep(100);
+    }
+}
+
+void *thread_lora_recv(void *arg)
+{
+    msg_st msg;
+
+    while(1) {
+        msg.pdata = NULL;
+        int res = msgrcv(lora_recv_msg, (void *)&msg,
+                         sizeof(msg.pdata), 0, IPC_NOWAIT);
+
+        if (msg.pdata != NULL) {
+            uint8_t *buf = msg.pdata;
+
+            pthread_mutex_lock(&lora_lock); 
+
+            uint8_t len = buf[1] + 1;
+            uint8_t port = buf[2];
+            uint8_t cmd = buf[4];
+
+            log_buf(buf, len);
+
+            if ((cmd == SET_RELAY_NOTICE) || 
+                (cmd == SET_RELAY_RESPONSE) || 
+                ((cmd == GET_PARAM_RESPONSE) && 
+                 (port == 0))) {  /* only ctrl task data send to all fd */
+                LISTNODE *node = node_head;
+                while(node->data) {
+                    CMD_DATA *data = (CMD_DATA *)node->data;
+                    memcpy(data->send_buf, buf, len);
+                    sem_post(&data->sem);
+
+                    node = node_next(node);
+                }                      
+            } else {
+                LISTNODE * node = node_search_cmd(node_head, port);
+                if (node != NULL) {
+                    CMD_DATA *data = (CMD_DATA *)node->data;
+                    memcpy(data->send_buf, buf, len);
+                    sem_post(&data->sem);
+                }                    
+            }
+            pthread_mutex_unlock(&lora_lock);     
+        }
+        usleep(100);
+    }
+}
+
 void *thread_lora(void *arg)
 {
     uint8_t rx_buf[1024];
@@ -61,52 +135,28 @@ void *thread_lora(void *arg)
 
     while(1) {   
         switch(SX1276Process()) {          
-        case RF_RX_TIMEOUT:
-            // fprintf(stderr, "timeout \r\n");        
+        case RF_RX_TIMEOUT:      
             break;
         case RF_RX_DONE:
-            //log_write("gain = %d \r\n", SX1276LoRaGetPacketRxGain());
-
             SX1276GetRxPacket(rx_buf, &len);
 
-            log_write("len = %d \r\n", len);
             if ((len < 20) && (rx_buf[len-1] == check_sum(rx_buf, len-1))) {
-                log_buf(rx_buf, len);
-
-                pthread_mutex_lock(&lora_lock); 
-
-                uint8_t port = rx_buf[2];
-                uint8_t cmd = rx_buf[4];
-                if ((cmd == SET_RELAY_NOTICE) || 
-                    (cmd == SET_RELAY_RESPONSE) || 
-                    ((cmd == GET_PARAM_RESPONSE) && 
-                     (port == 0))) {  /* only ctrl task data send to all fd */
-                    LISTNODE *node = node_head;
-                    while(node->data) {
-                        CMD_DATA *data = (CMD_DATA *)node->data;
-                        memcpy(data->send_buf, rx_buf, len);
-                        sem_post(&data->sem);
-
-                        node = node_next(node);
-                    }                      
-                } else {
-                    LISTNODE * node = node_search_cmd(node_head, port);
-                    if (node != NULL) {
-                        CMD_DATA *data = (CMD_DATA *)node->data;
-                        memcpy(data->send_buf, rx_buf, len);
-                        sem_post(&data->sem);
-                    }                    
-                }
-                pthread_mutex_unlock(&lora_lock); 
+                msg.type = 1;
+                uint8_t *ptr = lora.msg_buf + lora.msg_cnt;
+                memcpy(ptr, rx_buf, len);
+                msg.pdata = ptr;
+                lora.msg_cnt = (++lora.msg_cnt) % 10;
+                msgsnd(lora_recv_msg, (void *)&msg, sizeof(msg.pdata), 0);
+            } else {
+                log_write("lora err len = %d \r\n", len);
             }
             break;
         case RF_TX_DONE:
-            //printf("tx done \r\n");
             SX1276StartRx();
             break;
         default:
             break;
         }
-        usleep(10 * 1000);
+        usleep(1000);
     }
 }

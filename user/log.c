@@ -41,6 +41,34 @@ int log_write(const char * format, ...) {
     va_end(arg);
 }
 
+int log_buf(char *buf, uint16_t len) {
+    char string[1024];
+    char str_tmp[16];
+
+    /* get system time */
+    time_t time_v;
+    time(&time_v);
+    struct tm *time_p = localtime(&time_v);
+
+    string[0] = '\0';
+    for (uint16_t i = 0; i < len; i++) {
+        sprintf(str_tmp, "%02x ", buf[i]);
+        strcat(string, str_tmp);
+    }
+    strcat(string, "\r\n");
+
+    printf("%s", string);
+#if 1
+    if (log_file.fp != NULL) {
+        fprintf(log_file.fp, "[%02d-%02d %02d:%02d:%02d] %s", 
+               time_p->tm_mon + 1, time_p->tm_mday,
+               time_p->tm_hour, time_p->tm_min, time_p->tm_sec, 
+               string);
+        fflush(log_file.fp);
+    }
+#endif
+}
+
 #if 0
 /* create log file */
 void log_write(const char *format, ...)

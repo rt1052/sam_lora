@@ -71,13 +71,7 @@ void *thread_lora(void *arg)
 
             log_write("len = %d \r\n", len);
             if ((len < 20) && (rx_buf[len-1] == check_sum(rx_buf, len-1))) {
-
-#if 1            
-            for(uint8_t i = 0; i < len; i++) {
-                log_write("0x%02x ", rx_buf[i]);
-            }
-            log_write("\r\n");
-#endif
+                log_buf(rx_buf, len);
 
                 pthread_mutex_lock(&lora_lock); 
 

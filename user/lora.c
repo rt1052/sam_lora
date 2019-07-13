@@ -34,7 +34,7 @@ int lora_send(uint8_t port, uint8_t id, uint8_t cmd, uint8_t *dat, uint8_t cnt)
     buf[len] = check_sum(buf, len);
     
     int res = SX1276GetRFState();
-    //printf("res = %d \r\n", res);
+
     if ((res == 2)) { //} || (res == 0)) {  // RFLR_STATE_RX_RUNNING
         SX1276SetTxPacket(buf, len+1);  
         return 0;
@@ -54,15 +54,16 @@ void *thread_lora_send(void *arg)
 
         if (msg.pdata != NULL) {
             uint8_t *buf = msg.pdata;
+            uint8_t len = buf[1]+1;
 
-            log_buf(buf, buf[1]+1);
+            // log_buf(buf, len);
 
             /* wait lora idle */
             while(SX1276GetRFState() != 0x2) {
-                usleep(1000);
+                usleep(100 * 1000);
             }
             /* send lora data */
-            SX1276SetTxPacket(buf, buf[1]+1);  
+            SX1276SetTxPacket(buf, len);  
         }
 
         usleep(100);
@@ -157,6 +158,6 @@ void *thread_lora(void *arg)
         default:
             break;
         }
-        usleep(1000);
+        usleep(5 * 1000);
     }
 }

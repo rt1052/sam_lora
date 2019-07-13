@@ -48,15 +48,14 @@ int log_write(const char * format, ...) {
 
     if (flag) {
         flag = false;
-        sprintf(log_file.path, "/home/ftpuser/log/lora/%4d-%02d-%02d.log",
+        sprintf(log_file.path, "/var/log/lora/%4d-%02d-%02d.log",
                 time_p->tm_year + 1900, time_p->tm_mon + 1, time_p->tm_mday);
 
         log_file.fp = fopen(log_file.path, "ab+");
     }
 
     if (log_file.fp != NULL) {
-        fprintf(log_file.fp, "[%02d-%02d %02d:%02d:%02d] %s", 
-               time_p->tm_mon + 1, time_p->tm_mday,
+        fprintf(log_file.fp, "[%02d:%02d:%02d] %s", 
                time_p->tm_hour, time_p->tm_min, time_p->tm_sec, 
                string);
         fflush(log_file.fp);
@@ -102,7 +101,7 @@ int log_buf(char *buf, uint16_t len) {
 
     if (flag) {
         flag = false;
-        sprintf(log_file.path, "/home/ftpuser/log/lora/%4d-%02d-%02d.log",
+        sprintf(log_file.path, "/var/log/lora/%4d-%02d-%02d.log",
                 time_p->tm_year + 1900, time_p->tm_mon + 1, time_p->tm_mday);
 
         log_file.fp = fopen(log_file.path, "ab+");
@@ -110,8 +109,7 @@ int log_buf(char *buf, uint16_t len) {
 
 
     if (log_file.fp != NULL) {
-        fprintf(log_file.fp, "[%02d-%02d %02d:%02d:%02d] %s", 
-               time_p->tm_mon + 1, time_p->tm_mday,
+        fprintf(log_file.fp, "[%02d:%02d:%02d] %s", 
                time_p->tm_hour, time_p->tm_min, time_p->tm_sec, 
                string);
         fflush(log_file.fp);

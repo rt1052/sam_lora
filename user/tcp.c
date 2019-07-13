@@ -28,7 +28,7 @@ void *thread_client(void *arg)
         if (len > 0) {
             if (1) { //(buf[len-1] == check_sum(buf, len-1)) {
 
-                log_write("tcp len = %d \r\n", len);
+                // log_write("tcp len = %d \r\n", len);
 
                 uint8_t lora_buf[64];
                 uint8_t lora_buf_len = buf[1] + 1;
@@ -66,7 +66,7 @@ void *thread_client(void *arg)
         /* received sem */
         if (res == 0) {
             len = data->send_buf[1];
-            log_write("lora len = %d \r\n", len);
+            // log_write("lora len = %d \r\n", len);
             send(data->fd, data->send_buf, len, 0);
             memset(data->send_buf, 0, 128);
         }
@@ -123,7 +123,7 @@ void *thread_tcp(void *arg)
         /* create thread */
         res = pthread_create(&client_thread, NULL, thread_client, node_head);
         if (res != 0) {
-            log_write("client thread creation failed \r\n");
+            log_write("client thread create failed \r\n");           
             exit(EXIT_FAILURE);
         }
     }

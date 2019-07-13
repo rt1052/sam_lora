@@ -8,6 +8,16 @@ sem_t lora_sem;
 pthread_mutex_t lora_lock, lora_send_lock;
 pthread_cond_t lora_cond;
 
+
+
+#include <signal.h>
+
+void handle_pipe(int sig)
+{
+    log_write("signal \r\n");
+}
+
+
 int main(int argc, char **argv)
 {
     int ch;
@@ -16,7 +26,13 @@ int main(int argc, char **argv)
     void *thread_result;
     int res;
 
-    //log_init();
+    /* avoid tcp send to a closed connection to stop the program */
+    struct sigaction sa;
+    sa.sa_handler = handle_pipe;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGPIPE,&sa,NULL);
+
     log_write("\r\n************** welcome *************** \r\n");
     while ((ch = getopt(argc, argv, "s:h")) != -1) {
         switch (ch) {

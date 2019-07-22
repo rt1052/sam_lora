@@ -17,6 +17,9 @@ void *thread_client(void *arg)
     int res;
     msg_st msg;
 
+    /* thread will auto free stack */
+    pthread_detach(pthread_self());
+
     LISTNODE *node = (LISTNODE *)arg;
     CMD_DATA *data = (CMD_DATA *)node->data;
 

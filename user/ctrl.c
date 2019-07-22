@@ -121,6 +121,7 @@ void *thread_data(void *arg)
 {
     char *recv_buf;
     uint8_t dat = 0;
+    uint8_t cnt = 0;
 
     char str[128];
     sqlite3 *db=NULL;  
@@ -159,13 +160,18 @@ void *thread_data(void *arg)
         if (res == 0) {
             lora_frame = (lora_frame_t *)data->send_buf;
             if (lora_frame->cmd == GET_PARAM_RESPONSE) {
+
+                if (++cnt > 4) {
+                    cnt = 0;
 #if 0                
-                log_write("humi:%d, temp:%d.%d \r\n", 
-                        lora_frame->dat[0], lora_frame->dat[2], lora_frame->dat[3]); 
+                    log_write("humi:%d, temp:%d.%d \r\n", 
+                            lora_frame->dat[0], lora_frame->dat[2], lora_frame->dat[3]); 
 #else
-                sprintf(str, "INSERT INTO \"dht11\" VALUES(datetime('now'), %d, %d.%d);", 
-                        lora_frame->dat[0], lora_frame->dat[2], lora_frame->dat[3]);
-                sqlite3_exec(db, str, 0, 0, &err);  
+                    /* default timezone is utc, we need localtime */
+                    sprintf(str, "INSERT INTO \"dht11\" VALUES(datetime('now', 'localtime'), %d, %d.%d);", 
+                            lora_frame->dat[0], lora_frame->dat[2], lora_frame->dat[3]);
+                    sqlite3_exec(db, str, 0, 0, &err);  
+                }
 #endif                
             } 
             memset(data->send_buf, 0, 128);

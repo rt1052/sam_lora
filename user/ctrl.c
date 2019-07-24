@@ -1,6 +1,7 @@
 #include "main.h"
 #include "list.h"
 #include "tcp.h"
+#include "alarm.h"
 
 #define SET_RELAY_REQUEST   0x1
 #define SET_RELAY_RESPONSE  0x2
@@ -29,75 +30,17 @@ void *thread_user(void *arg)
 
             if (0 == strcmp(getsBuf, "")) {
                 /* just press enter */
+            } else if (0 == strncmp(getsBuf, "lsa", strlen("lsa"))) {
+                node_display_alarm(alarm_node_head);
             } else if (0 == strncmp(getsBuf, "ls", strlen("ls"))) {
                 node_display_cmd(node_head);
-            }
-#if 0
-            else if (0 == strncmp(getsBuf, "on ", strlen("on "))) {
-                sscanf(getsBuf+3, "%d", &id);
-                pthread_mutex_lock(&lora_lock);
-                fprintf(stderr, "lora lock \r\n");
-                value = 1;
-                lora_send(id, SET_RELAY_REQUEST, &value, 1);
-                sem_wait(&lora_sem);
-                if (lora_frame.cmd == SET_RELAY_RESPONSE) {
-                    fprintf(stderr, "sys# set ok \r\n");
-                }
-
-                pthread_mutex_unlock(&lora_lock);
-                fprintf(stderr, "lora unlock \r\n");
-
-            } else if (0 == strncmp(getsBuf, "off ", strlen("off "))) {
-                sscanf(getsBuf+4, "%d", &id);
-                pthread_mutex_lock(&lora_lock);
-                fprintf(stderr, "lora lock \r\n");
-                value = 0;
-                lora_send(id, SET_RELAY_REQUEST, &value, 1);
-                sem_wait(&lora_sem);
-                if (lora_frame.cmd == SET_RELAY_RESPONSE) {
-                    fprintf(stderr, "sys# set ok \r\n");
-                }
-
-                pthread_mutex_unlock(&lora_lock);
-                fprintf(stderr, "lora unlock \r\n");
-
-            } else if (0 == strncmp(getsBuf, "get ", strlen("get "))) {
-                sscanf(getsBuf+4, "%d", &id);
-                pthread_mutex_lock(&lora_lock);
-
-                value = 0;
-                lora_send(id, GET_RELAY_REQUEST, &value, 1);
-                sem_wait(&lora_sem);
-                if (lora_frame.cmd == GET_RELAY_RESPONSE) {
-                    fprintf(stderr, "sys# %s \r\n", lora_frame.dat[0] ? "on" : "off");
-                }
-
-                pthread_mutex_unlock(&lora_lock);                
-
-            } else if (0 == strncmp(getsBuf, "dat ", strlen("dat "))) {
-                sscanf(getsBuf+4, "%d", &id);
-                pthread_mutex_lock(&lora_lock);
-
-                value = 0;
-                lora_send(id, GET_PARAM_REQUEST, &value, 1);
-                sem_wait(&lora_sem);
-                if (lora_frame.cmd == GET_PARAM_RESPONSE) {
-                    fprintf(stderr, "sys# humi:%d, temp:%d.%d \r\n", 
-                    lora_frame.dat[0], lora_frame.dat[2], lora_frame.dat[3]); 
-                }
-
-                pthread_mutex_unlock(&lora_lock);                
-
             } else if (0 == strcmp(getsBuf, "help")) {
-                fprintf(stderr, " -on    switch on \r\n");
-                fprintf(stderr, " -off   switch off \r\n");
-                fprintf(stderr, " -get   get state \r\n");
-                fprintf(stderr, " -dat   get dat \r\n");
+                fprintf(stderr, " -ls    list client \r\n");
+                fprintf(stderr, " -lsa   list alarm \r\n");
                 fprintf(stderr, " -help  this help \r\n");
             } else {
                 fprintf(stderr, "unknow command \r\n");
-            }
-#endif            
+            }       
 
             fprintf(stderr, "user# ");
         } else {
@@ -114,54 +57,56 @@ void *thread_gets(void *arg)
     }
 }
 
-//#include <stdlib.h>  
-#include "sqlite3.h"  
-
 void *thread_data(void *arg)
 {
-    char *recv_buf;
-    uint8_t dat = 0;
     uint8_t cnt = 0;
 
     char str[128];
     sqlite3 *db=NULL;  
     char *err = 0;  
-    int rc;  
     int res;
 
-    msg_st msg;
-    lora_frame_t *lora_frame;
+    sleep(3);
 
-    rc = sqlite3_open("dht11.db", &db);  
-    if (rc) {  
+    /* sqlite init */
+    res = sqlite3_open("dht11.db", &db);  
+    if (res) {  
         fprintf(stderr, "Can't open database: %s/n", sqlite3_errmsg(db));  
         sqlite3_close(db);  
     }  
     char *sql = " CREATE TABLE dht11(Time VARCHAR(12), humi REAL, temp REAL);" ;  
     sqlite3_exec( db , sql , 0 , 0 , &err );      
 
-    sleep(5);
+    CMD_DATA *cmd_data = (CMD_DATA *)malloc(sizeof(CMD_DATA));
+    cmd_data->fd = 0;
+    cmd_data->port = 0;
+    strcpy(cmd_data->host, "local-ctrl");
+    cmd_data->active = true;
+    memset(cmd_data->send_buf, 0, 128);
+    sem_init(&cmd_data->sem, 0, 0);
+    node_insert(node_head_p, cmd_data);
 
-    CMD_DATA *data = (CMD_DATA *)malloc(sizeof(CMD_DATA));
-    data->fd = 1;
-    data->port = 0;
-    strcpy(data->host, "local-ctrl");
-    data->active = true;
-    memset(data->send_buf, 0, 128);
-    sem_init(&data->sem, 0, 0);
-
-    node_insert(node_head_p, data);
+    /* add alarm event */
+    ALARM_DATA *alarm_data = (ALARM_DATA *)malloc(sizeof(ALARM_DATA));
+    /* one day */
+    uint32_t interval = 2*60;
+    alarm_data->time = time(NULL)/interval*interval;
+    alarm_data->interval = interval;
+    //alarm_data->timeout = 60;
+    alarm_data->fd = cmd_data->fd;
+    alarm_data->id = 1;
+    alarm_data->cmd = GET_PARAM_REQUEST;
+    alarm_data->dat = 0;
+    node_insert(alarm_node_head_p, alarm_data);       
 
     while(1) {
-        lora_send(data->port, 1, GET_PARAM_REQUEST, &dat, 1);
-
-        usleep(200 * 1000);
-        res = sem_trywait(&data->sem);     
+        res = sem_trywait(&cmd_data->sem);     
         if (res == 0) {
-            lora_frame = (lora_frame_t *)data->send_buf;
-            if (lora_frame->cmd == GET_PARAM_RESPONSE) {
+            uint8_t cmd = cmd_data->send_buf[4];
+            uint8_t *dat = cmd_data->send_buf+5;
+            if (cmd == GET_PARAM_RESPONSE) {
 
-                if (++cnt > 4) {
+                //if (++cnt > 4) {
                     cnt = 0;
 #if 0                
                     log_write("humi:%d, temp:%d.%d \r\n", 
@@ -169,15 +114,18 @@ void *thread_data(void *arg)
 #else
                     /* default timezone is utc, we need localtime */
                     sprintf(str, "INSERT INTO \"dht11\" VALUES(datetime('now', 'localtime'), %d, %d.%d);", 
-                            lora_frame->dat[0], lora_frame->dat[2], lora_frame->dat[3]);
+                            dat[0], dat[2], dat[3]);
                     sqlite3_exec(db, str, 0, 0, &err);  
-                }
+                //}
 #endif                
             } 
-            memset(data->send_buf, 0, 128);
+            memset(cmd_data->send_buf, 0, 128);
         }    
         sleep(30 * 2);
     }
 
     sqlite3_close(db); 
 }
+
+
+

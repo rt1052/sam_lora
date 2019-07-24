@@ -20,27 +20,28 @@ extern int fd;
 
 lora_st lora;
 
-int lora_send(uint8_t port, uint8_t id, uint8_t cmd, uint8_t *dat, uint8_t cnt)
+void lora_send(uint8_t fd, uint8_t id, uint8_t cmd, uint8_t dat)
 {
+    msg_st msg;
     uint8_t buf[64];
-    uint8_t len = cnt + 5;
+    uint8_t len = 6;
     
-    buf[0] = 0x42;
+    buf[0] = 0x42;  /* head */
     buf[1] = len;
-    buf[2] = port;
+    buf[2] = fd;
     buf[3] = id;
     buf[4] = cmd;
-    memcpy(buf+5, dat, cnt);
+    buf[5] = dat;
     buf[len] = check_sum(buf, len);
-    
-    int res = SX1276GetRFState();
 
-    if ((res == 2)) { //} || (res == 0)) {  // RFLR_STATE_RX_RUNNING
-        SX1276SetTxPacket(buf, len+1);  
-        return 0;
-    } else {
-        return -1;
-    }
+    /* create msg */
+    msg.type = 1;
+    uint8_t *ptr = lora.msg_send_buf + lora.msg_send_cnt;
+    /* add checksum */
+    memcpy(ptr, buf, len+1);
+    msg.pdata = ptr;
+    lora.msg_send_cnt = (++lora.msg_send_cnt) % 10;
+    msgsnd(lora_send_msg, (void *)&msg, sizeof(msg.pdata), 0);
 }
 
 void *thread_lora_send(void *arg)
@@ -56,11 +57,11 @@ void *thread_lora_send(void *arg)
             uint8_t *buf = msg.pdata;
             uint8_t len = buf[1]+1;
 
-            // log_buf(buf, len);
+            //log_buf(buf, len);
 
             /* wait lora idle */
             while(SX1276GetRFState() != 0x2) {
-                usleep(100 * 1000);
+                usleep(200*1000);
             }
             /* send lora data */
             SX1276SetTxPacket(buf, len);  
@@ -85,7 +86,7 @@ void *thread_lora_recv(void *arg)
             pthread_mutex_lock(&lora_lock); 
 
             uint8_t len = buf[1] + 1;
-            uint8_t port = buf[2];
+            uint8_t fd = buf[2];
             uint8_t cmd = buf[4];
 
             log_buf(buf, len);
@@ -93,7 +94,7 @@ void *thread_lora_recv(void *arg)
             if ((cmd == SET_RELAY_NOTICE) || 
                 (cmd == SET_RELAY_RESPONSE) || 
                 ((cmd == GET_PARAM_RESPONSE) && 
-                 (port == 0))) {  /* only ctrl task data send to all fd */
+                 (fd == 0))) {  /* only ctrl task data send to all fd */
                 LISTNODE *node = node_head;
                 while(node->data) {
                     CMD_DATA *data = (CMD_DATA *)node->data;
@@ -103,7 +104,7 @@ void *thread_lora_recv(void *arg)
                     node = node_next(node);
                 }                      
             } else {
-                LISTNODE * node = node_search_cmd(node_head, port);
+                LISTNODE * node = node_search_cmd(node_head, fd);
                 if (node != NULL) {
                     CMD_DATA *data = (CMD_DATA *)node->data;
                     memcpy(data->send_buf, buf, len);

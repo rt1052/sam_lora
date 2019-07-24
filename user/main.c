@@ -1,6 +1,7 @@
 #include "main.h"
 #include "lora.h"
 #include "tcp.h"
+#include "alarm.h"
 
 int lora_recv_msg, lora_send_msg;
 sem_t lora_sem;
@@ -9,22 +10,18 @@ pthread_mutex_t lora_lock, lora_send_lock;
 pthread_cond_t lora_cond;
 
 
-
-#include <signal.h>
-
 void handle_pipe(int sig)
 {
     log_write("signal \r\n");
 }
 
-
 int main(int argc, char **argv)
 {
     int ch;
-    pthread_t tcp_thread, lora_thread, lora_recv_thread, lora_send_thread,
-              user_thread, gets_thread, data_thread;
+    int res;        
     void *thread_result;
-    int res;
+    pthread_t tcp_thread, lora_thread, lora_recv_thread, lora_send_thread,
+              user_thread, gets_thread, data_thread, alarm_thread, alarm_event_thread;
 
     /* avoid tcp send to a closed connection to stop the program */
     struct sigaction sa;
@@ -110,14 +107,27 @@ int main(int argc, char **argv)
         fprintf(stderr, "gets thread creation failed");
         exit(EXIT_FAILURE);
     }
-    /* time ctrl */
+    /* alarm */
+    res = pthread_create(&alarm_thread, NULL, thread_alarm, NULL);
+    if (res != 0) {
+        fprintf(stderr, "alarm thread creation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    /* alarm event */
+    res = pthread_create(&alarm_event_thread, NULL, thread_alarm_event, NULL);
+    if (res != 0) {
+        fprintf(stderr, "alarm event thread creation failed");
+        exit(EXIT_FAILURE);
+    }    
 
     /* data base */
-    res = pthread_create(&data_thread, NULL, thread_data, NULL);
+    //res = pthread_create(&data_thread, NULL, thread_data, NULL);
     if (res != 0) {
         fprintf(stderr, "data thread creation failed");
         exit(EXIT_FAILURE);
     }
+
     /* search device */
 
     /* wait for thread finish */

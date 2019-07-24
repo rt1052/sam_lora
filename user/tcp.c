@@ -30,32 +30,9 @@ void *thread_client(void *arg)
 
         if (len > 0) {
             if (1) { //(buf[len-1] == check_sum(buf, len-1)) {
-
                 // log_write("tcp len = %d \r\n", len);
-
-                uint8_t lora_buf[64];
-                uint8_t lora_buf_len = buf[1] + 1;
-
-                lora_buf[0] = buf[0];  // head
-                lora_buf[1] = lora_buf_len;  // len
-                lora_buf[2] = data->fd;
-                lora_buf[3] = buf[2];  // id
-                lora_buf[4] = buf[3];  // cmd
-                lora_buf[5] = buf[4];  // dat
-                lora_buf[6] = check_sum(lora_buf, lora_buf_len);
-
                 pthread_mutex_lock(&lora_send_lock); 
-
-                /* create msg */
-                msg.type = 1;
-                uint8_t *ptr = lora.msg_send_buf + lora.msg_send_cnt;
-                /* add checksum */
-                memcpy(ptr, lora_buf, lora_buf_len+1);
-                msg.pdata = ptr;
-                lora.msg_send_cnt = (++lora.msg_send_cnt) % 10;
-                msgsnd(lora_send_msg, (void *)&msg, sizeof(msg.pdata), 0);
-                // res = lora_send(data->fd, id, cmd, &dat, 1);
-
+                lora_send(data->fd, buf[2], buf[3], buf[4]);
                 pthread_mutex_unlock(&lora_send_lock); 
             }          
         } else if (len == -1) {  /* timeout */

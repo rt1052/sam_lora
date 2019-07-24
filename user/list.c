@@ -1,4 +1,5 @@
 #include "list.h"
+#include "alarm.h"
 
 LISTNODE *node_create(void)
 {
@@ -65,6 +66,27 @@ LISTNODE *node_search_cmd(LISTNODE *head, int n)
     return NULL;
 }
 
+LISTNODE *node_search_alarm(LISTNODE *head, int n)
+{
+    LISTNODE *p = head;
+
+    if (n == 0) {
+        return NULL;
+    }
+
+    while(p) {
+        ALARM_DATA *data = (ALARM_DATA *)p->data;
+        if (data != NULL) {
+            if (n == data->id) {
+                return p;
+            }
+        }
+        p = p->next;
+    }
+
+    return NULL;
+}
+
 void node_display_cmd(LISTNODE *head)
 {
     int cnt = 0;
@@ -75,12 +97,39 @@ void node_display_cmd(LISTNODE *head)
     while(p) {
         CMD_DATA *data = (CMD_DATA *)p->data;
         if (data != NULL) {
-          fprintf(stderr, " ");
-          fprintf(stderr, "%-5d", data->fd);
-          fprintf(stderr, "%-17s", data->host);
-          fprintf(stderr, "%-7d", data->port);
-          fprintf(stderr, "\r\n");
-          cnt++;
+            fprintf(stderr, " ");
+            fprintf(stderr, "%-5d", data->fd);
+            fprintf(stderr, "%-17s", data->host);
+            fprintf(stderr, "%-7d", data->port);
+            fprintf(stderr, "\r\n");
+            cnt++;
+        }
+        p = p->next;
+    }
+    fprintf(stderr, " <%d> \r\n\r\n", cnt);
+}
+
+void node_display_alarm(LISTNODE *head)
+{
+    int cnt = 0;
+    LISTNODE *p = head;
+
+    fprintf(stderr, "\r\n fd   id   cmd  dat  time      \r\n");
+
+    while(p) {
+        ALARM_DATA *data = (ALARM_DATA *)p->data;
+        if (data != NULL) {
+            fprintf(stderr, " ");
+            fprintf(stderr, "%-5d", data->fd);
+            fprintf(stderr, "%-5d", data->id);
+            fprintf(stderr, "%-5d", data->cmd);
+            fprintf(stderr, "%-5d", data->dat);
+
+            char str[32];
+            strftime(str, sizeof(str), "%Y-%m-%d %H:%M:%S", localtime(&data->time));          
+            fprintf(stderr, "%-12s", str);
+            fprintf(stderr, "\r\n");
+            cnt++;
         }
         p = p->next;
     }

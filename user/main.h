@@ -17,23 +17,16 @@
 #include <sys/msg.h>
 #include <stdbool.h>
 #include <semaphore.h>
+#include <time.h>
+#include <signal.h>
+
+#include "sqlite3.h"  
 
 
 typedef struct {
     long int type;
     void *pdata;
 } msg_st;
-
-
-typedef struct {
-    uint8_t head;
-    uint8_t len;
-    uint8_t port;
-    uint8_t id;
-    uint8_t cmd;
-    uint8_t dat[4];
-    // uint8_t cs;
-} lora_frame_t;
 
 
 
@@ -46,10 +39,10 @@ extern sem_t lora_sem;
 void *thread_user(void *arg);
 void *thread_gets(void *arg);
 void *thread_data(void *arg);
+void *thread_alarm(void *arg);
 
 
 uint8_t check_sum(uint8_t *buf, uint16_t len);
-int lora_send(uint8_t port, uint8_t id, uint8_t cmd, uint8_t *dat, uint8_t cnt);
 
 #endif
 

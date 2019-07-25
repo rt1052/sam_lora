@@ -94,7 +94,7 @@ void *thread_lora_recv(void *arg)
             if ((cmd == SET_RELAY_NOTICE) || 
                 (cmd == SET_RELAY_RESPONSE) || 
                 ((cmd == GET_PARAM_RESPONSE) && 
-                 (fd == 0))) {  /* only ctrl task data send to all fd */
+                 (fd == 1))) {  /* only ctrl task data send to all fd */
                 LISTNODE *node = node_head;
                 while(node->data) {
                     CMD_DATA *data = (CMD_DATA *)node->data;

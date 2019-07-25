@@ -122,7 +122,7 @@ int main(int argc, char **argv)
     }    
 
     /* data base */
-    //res = pthread_create(&data_thread, NULL, thread_data, NULL);
+    res = pthread_create(&data_thread, NULL, thread_data, NULL);
     if (res != 0) {
         fprintf(stderr, "data thread creation failed");
         exit(EXIT_FAILURE);

@@ -97,7 +97,6 @@ void *thread_tcp(void *arg)
         data->port = ntohs(client.sin_port);
         memset(data->send_buf, 0, 128);
         sem_init(&data->sem, 0, 0);
-
         node_insert(node_head_p, data);
 
         /* create thread */

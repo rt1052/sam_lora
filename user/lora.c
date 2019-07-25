@@ -91,6 +91,10 @@ void *thread_lora_recv(void *arg)
 
             log_buf(buf, len);
 
+            if (fd >= 0x80) {
+                fd = 0x80;
+            }
+
             if ((cmd == SET_RELAY_NOTICE) || 
                 (cmd == SET_RELAY_RESPONSE) || 
                 ((cmd == GET_PARAM_RESPONSE) && 

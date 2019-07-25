@@ -77,7 +77,7 @@ LISTNODE *node_search_alarm(LISTNODE *head, int n)
     while(p) {
         ALARM_DATA *data = (ALARM_DATA *)p->data;
         if (data != NULL) {
-            if (n == data->id) {
+            if (n == data->fd) {
                 return p;
             }
         }

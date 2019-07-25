@@ -101,11 +101,11 @@ void *thread_data(void *arg)
     while(1) {
         res = sem_trywait(&cmd_data->sem);     
         if (res == 0) {
-            uint8_t id = cmd_data->send_buf[3];
+            uint8_t fd = cmd_data->send_buf[2];
             uint8_t cmd = cmd_data->send_buf[4];
             uint8_t *dat = cmd_data->send_buf+5;
 
-            LISTNODE *node = node_search_alarm(alarm_node_head, id);
+            LISTNODE *node = node_search_alarm(alarm_node_head, fd);
             if (node != NULL) {
                 alarm_data = (ALARM_DATA *)node->data;
                 if (time(NULL) > alarm_data->time) {
@@ -119,8 +119,7 @@ void *thread_data(void *arg)
                                 dat[0], dat[2], dat[3]);
                         sqlite3_exec(db, str, 0, 0, &err);  
 #endif                                                             
-                        if (alarm_data->interval) {  
-                        printf("***********\n");                      
+                        if (alarm_data->interval) {                     
                             alarm_data->time += alarm_data->interval;
                         } else {
                             node_delete(alarm_node_head_p, node);

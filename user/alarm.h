@@ -12,6 +12,7 @@ typedef struct {
     uint8_t dat;
 } ALARM_DATA;
 
+
 extern LISTNODE *alarm_node_head, **alarm_node_head_p;
 
 

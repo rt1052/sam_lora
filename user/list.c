@@ -114,7 +114,7 @@ void node_display_alarm(LISTNODE *head)
     int cnt = 0;
     LISTNODE *p = head;
 
-    fprintf(stderr, "\r\n fd   id   cmd  dat  time      \r\n");
+    fprintf(stderr, "\r\n fd   id   cmd  dat  time                 interval \r\n");
 
     while(p) {
         ALARM_DATA *data = (ALARM_DATA *)p->data;
@@ -127,7 +127,9 @@ void node_display_alarm(LISTNODE *head)
 
             char str[32];
             strftime(str, sizeof(str), "%Y-%m-%d %H:%M:%S", localtime(&data->time));          
-            fprintf(stderr, "%-12s", str);
+            fprintf(stderr, "%-21s", str);
+
+            fprintf(stderr, "%-5d", data->interval);
             fprintf(stderr, "\r\n");
             cnt++;
         }

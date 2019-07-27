@@ -85,19 +85,9 @@ void *thread_data(void *arg)
     memset(cmd_data->send_buf, 0, 128);
     sem_init(&cmd_data->sem, 0, 0);
     node_insert(node_head_p, cmd_data);
-#if 1
-    /* add alarm event */
-    ALARM_DATA *alarm_data = (ALARM_DATA *)malloc(sizeof(ALARM_DATA));
-    uint32_t interval = 2 * 60;
-    alarm_data->time = time(NULL)/interval*interval;
-    alarm_data->interval = interval;
-    alarm_data->timeout = 60;
-    alarm_data->fd = cmd_data->fd;
-    alarm_data->id = 1;
-    alarm_data->cmd = GET_PARAM_REQUEST;
-    alarm_data->dat = 0;
-    node_insert(alarm_node_head_p, alarm_data);       
-#endif
+
+    alarm_create(NULL, 2*60, 10, cmd_data->fd, 0x1, GET_PARAM_REQUEST, 0x0);
+
     while(1) {
         res = sem_trywait(&cmd_data->sem);     
         if (res == 0) {
@@ -107,9 +97,9 @@ void *thread_data(void *arg)
 
             LISTNODE *node = node_search_alarm(alarm_node_head, fd);
             if (node != NULL) {
-                alarm_data = (ALARM_DATA *)node->data;
+                ALARM_DATA *alarm_data = (ALARM_DATA *)node->data;
                 if (time(NULL) > alarm_data->time) {
-                    if ((alarm_data->cmd+1) == cmd) {
+                    if (cmd == GET_PARAM_RESPONSE) {
 #if 0                
                         log_write("humi:%d, temp:%d.%d \r\n", 
                                 lora_frame->dat[0], lora_frame->dat[2], lora_frame->dat[3]); 
@@ -119,7 +109,7 @@ void *thread_data(void *arg)
                                 dat[0], dat[2], dat[3]);
                         sqlite3_exec(db, str, 0, 0, &err);  
 #endif                                                             
-                        if (alarm_data->interval) {                     
+                        if (alarm_data->interval) {                  
                             alarm_data->time += alarm_data->interval;
                         } else {
                             node_delete(alarm_node_head_p, node);
@@ -127,25 +117,6 @@ void *thread_data(void *arg)
                     }
                 }
             }   
-
-#if 0
-            if (cmd == GET_PARAM_RESPONSE) {
-
-                //if (++cnt > 4) {
-                    cnt = 0;
-#if 0                
-                    log_write("humi:%d, temp:%d.%d \r\n", 
-                            lora_frame->dat[0], lora_frame->dat[2], lora_frame->dat[3]); 
-#else
-                    /* default timezone is utc, we need localtime */
-                    sprintf(str, "INSERT INTO \"dht11\" VALUES(datetime('now', 'localtime'), %d, %d.%d);", 
-                            dat[0], dat[2], dat[3]);
-                    sqlite3_exec(db, str, 0, 0, &err);  
-                //}
-#endif                
-            } 
-#endif
-
             memset(cmd_data->send_buf, 0, 128);
         }
 

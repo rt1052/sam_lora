@@ -40,10 +40,29 @@ void *thread_alarm(void *arg)
     }
 }
 
+void alarm_create(char *time_str, uint32_t interval, uint16_t timeout,
+                  uint8_t fd, uint8_t id, uint8_t cmd, uint8_t dat)
+{
+    struct tm time_tm;
+
+    ALARM_DATA *alarm_data = (ALARM_DATA *)malloc(sizeof(ALARM_DATA));
+    if (time_str != NULL) {
+        strptime(time_str, "%Y-%m-%d %H:%M:%S", &time_tm);
+        alarm_data->time = mktime(&time_tm) + time(NULL)/(24*60*60)*(24*60*60);
+    } else {
+        alarm_data->time = time(NULL);
+    }
+    alarm_data->interval = interval;
+    alarm_data->timeout = timeout;
+    alarm_data->fd = fd;
+    alarm_data->id = id;
+    alarm_data->cmd = cmd;
+    alarm_data->dat = dat;
+    node_insert(alarm_node_head_p, alarm_data);      
+}
+
 void *thread_alarm_event(void *arg)
 {
-    struct tm t;
-
 	sleep(4);
 
     CMD_DATA *cmd_data = (CMD_DATA *)malloc(sizeof(CMD_DATA));
@@ -55,61 +74,13 @@ void *thread_alarm_event(void *arg)
     sem_init(&cmd_data->sem, 0, 0);
     node_insert(node_head_p, cmd_data);
 
-    /* add alarm event */
-    ALARM_DATA *alarm_data = (ALARM_DATA *)malloc(sizeof(ALARM_DATA));
-    strptime("1970-01-01 23:32:00", "%Y-%m-%d %H:%M:%S", &t);
-    /* one day */
-    uint32_t interval = 60 * 60 * 24;
-    alarm_data->time = mktime(&t) + time(NULL)/interval*interval;
-    alarm_data->interval = interval;
-    alarm_data->timeout = 60 * 10;
-    alarm_data->fd = cmd_data->fd + 0x1;
-    alarm_data->id = 1;
-    alarm_data->cmd = SET_RELAY_REQUEST;
-    alarm_data->dat = 1;
-    node_insert(alarm_node_head_p, alarm_data);    
+    /*              time                  interval  timeout fd                id   cmd                dat */
+    alarm_create("1970-01-01 18:35:00", 10*60,     10,    cmd_data->fd+0x1, 0x1, SET_RELAY_REQUEST, 0x0);
+    alarm_create("1970-01-01 18:40:00", 10*60,     10,    cmd_data->fd+0x2, 0x1, SET_RELAY_REQUEST, 0x1);
+    alarm_create("1970-01-01 22:00:00", 60*60*24, 60*10,  cmd_data->fd+0x3, 0x2, SET_RELAY_REQUEST, 0x1);
+    alarm_create("1970-01-01 08:00:00", 60*60*24, 60*10,  cmd_data->fd+0x4, 0x2, SET_RELAY_REQUEST, 0x0);
 
-    /* add alarm event */
-    alarm_data = (ALARM_DATA *)malloc(sizeof(ALARM_DATA));
-    strptime("1970-01-01 23:32:10", "%Y-%m-%d %H:%M:%S", &t);
-    /* one day */
-    interval = 60 * 60 * 24;
-    alarm_data->time = mktime(&t) + time(NULL)/interval*interval;
-    alarm_data->interval = interval;
-    alarm_data->timeout = 60 * 10;
-    alarm_data->fd = cmd_data->fd + 0x2;
-    alarm_data->id = 1;
-    alarm_data->cmd = SET_RELAY_REQUEST;
-    alarm_data->dat = 0;
-    node_insert(alarm_node_head_p, alarm_data);      
-
-    /* add alarm event */
-    alarm_data = (ALARM_DATA *)malloc(sizeof(ALARM_DATA));
-    strptime("1970-01-01 23:40:00", "%Y-%m-%d %H:%M:%S", &t);
-    /* one day */
-    interval = 60 * 60 * 24;
-    alarm_data->time = mktime(&t) + time(NULL)/interval*interval;
-    alarm_data->interval = interval;
-    alarm_data->timeout = 60 * 10;
-    alarm_data->fd = cmd_data->fd + 0x3;
-    alarm_data->id = 2;
-    alarm_data->cmd = SET_RELAY_REQUEST;
-    alarm_data->dat = 1;
-    node_insert(alarm_node_head_p, alarm_data);   
-
-    /* add alarm event */
-    alarm_data = (ALARM_DATA *)malloc(sizeof(ALARM_DATA));
-    strptime("1970-01-01 07:40:00", "%Y-%m-%d %H:%M:%S", &t);
-    /* one day */
-    interval = 60 * 60 * 24;
-    alarm_data->time = mktime(&t) + time(NULL)/interval*interval;
-    alarm_data->interval = interval;
-    alarm_data->timeout = 60 * 10;
-    alarm_data->fd = cmd_data->fd + 0x4;
-    alarm_data->id = 2;
-    alarm_data->cmd = SET_RELAY_REQUEST;
-    alarm_data->dat = 0;
-    node_insert(alarm_node_head_p, alarm_data);   
+    alarm_create("1970-01-01 23:24:00", 0       , 60*10,  cmd_data->fd+0x5, 0x1, SET_RELAY_REQUEST, 0x1);
 
 	while(1) {
 		int res = sem_trywait(&cmd_data->sem);
@@ -121,10 +92,10 @@ void *thread_alarm_event(void *arg)
                 
             LISTNODE *node = node_search_alarm(alarm_node_head, fd);
             if (node != NULL) {
-                alarm_data = (ALARM_DATA *)node->data;
+                ALARM_DATA *alarm_data = (ALARM_DATA *)node->data;
                 if (time(NULL) > alarm_data->time) {
                     if (alarm_data->dat == dat) {
-                        if (alarm_data->interval) {                      
+                        if (alarm_data->interval) {                   
                             alarm_data->time += alarm_data->interval;
                         } else {
                             node_delete(alarm_node_head_p, node);
